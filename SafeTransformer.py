@@ -2,6 +2,7 @@ import numpy as np
 import ruptures as rpt
 from sklearn.ensemble.partial_dependence import partial_dependence
 from sklearn.base import TransformerMixin
+import pandas as pd
 
 class SafeTransformer(TransformerMixin):
     
@@ -9,18 +10,19 @@ class SafeTransformer(TransformerMixin):
         self.changepoint_values = []
         self.x_dims = 0
     
-    def fit(self, X, clf):
+    def fit(self, X, clf, penalty=3):
         pdps = []
         axes = []
         self.x_dims = X.shape[1]
         changepoints = []
         for i in range(self.x_dims):
-            pdp, axis = partial_dependence(clf, (i), X=X, grid_resolution=1000)
+            pdp, axis = self._get_partial_dependence(clf, i, X=X, grid_resolution=1000)
+            pdp2, axis2 = self._get_partial_dependence(clf, i, X=X, grid_resolution=1000)
             pdps.append(pdp[0])
             axes.append(axis[0])
         for i, pdp in enumerate(pdps):
             algo = rpt.Pelt(model='l2').fit(pdp)
-            my_bkps = algo.predict(pen=1) 
+            my_bkps = algo.predict(pen=penalty) 
             changepoints.append(my_bkps)
         self.changepoint_values = [[axes[n_dim][i-1] for i in changepoints[n_dim]]
                                    for n_dim in range(self.x_dims)]
@@ -29,4 +31,26 @@ class SafeTransformer(TransformerMixin):
     def transform(self, X):
         new_data = [[len(list(filter(lambda e: x>=e, self.changepoint_values[current_dim]))) for x in X[:,current_dim]] 
                     for current_dim in range(self.x_dims)]
-        return new_data
+        new_data = pd.DataFrame(new_data).transpose()
+        arrays = []
+        for idx in new_data:
+            ret = np.zeros([len(new_data[idx]), len(self.changepoint_values[idx])])
+            for row_num, val in enumerate(new_data[idx]):
+                if val > 0:
+                    ret[row_num, val - 1] = 1
+            arrays.append(ret)
+        return np.concatenate(arrays, axis=1)
+    
+    def _get_partial_dependence(self, clf, i, X, grid_resolution=1000):
+        axes = []
+        pdp = []
+        points = np.linspace(min(X[:,i]), max(X[:,i]), grid_resolution)
+        for point in points:
+            X_copy = np.copy(X)
+            axes.append(point)
+            X_copy[:,i] = point
+            predictions = clf.predict(X_copy)
+            val = np.mean(predictions)
+            pdp.append(val)
+        return [np.array(pdp)], [axes]
+                             
