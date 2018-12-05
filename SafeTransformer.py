@@ -58,7 +58,10 @@ class SafeTransformer(TransformerMixin):
             X_copy = np.copy(X)
             axes.append(point)
             X_copy[:,i] = point
-            predictions = clf.predict(X_copy)
+            if(hasattr(clf, 'predict_proba')):
+            	predictions = clf.predict_proba(X_copy)[:,0]
+            else:
+            	predictions = clf.predict(X_copy)
             val = np.mean(predictions)
             pdp.append(val)
         return [np.array(pdp)], [axes]
