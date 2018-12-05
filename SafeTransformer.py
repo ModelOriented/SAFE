@@ -11,6 +11,10 @@ class SafeTransformer(TransformerMixin):
         self.x_dims = 0
     
     def fit(self, X, clf, penalty=3):
+        if isinstance(X, pd.DataFrame):
+            base_names = list(X)
+        else:
+            base_names = ['X' + str(i) for i in range(X.shape[1])]
         pdps = []
         axes = []
         self.x_dims = X.shape[1]
@@ -26,6 +30,10 @@ class SafeTransformer(TransformerMixin):
             changepoints.append(my_bkps)
         self.changepoint_values = [[axes[n_dim][i-1] for i in changepoints[n_dim]]
                                    for n_dim in range(self.x_dims)]
+        changepoint_names = [['%.2f' % self.changepoint_values[i][j] for j in range(len(self.changepoint_values[i]))] + ["+Inf"] for i in range(len(self.changepoint_values))]
+        self.names = [[base_names[i] + "_(" + changepoint_names[i][j] + ", " + 
+                  changepoint_names[i][j+1]+")" for j in range(len(changepoint_names[i])-1)] for i in range(len(base_names))]
+        self.names = [item for sublist in self.names for item in sublist]
         return self
         
     def transform(self, X):
@@ -39,7 +47,8 @@ class SafeTransformer(TransformerMixin):
                 if val > 0:
                     ret[row_num, val - 1] = 1
             arrays.append(ret)
-        return np.concatenate(arrays, axis=1)
+        result = np.concatenate(arrays, axis=1)
+        return pd.DataFrame(result, columns=self.names)
     
     def _get_partial_dependence(self, clf, i, X, grid_resolution=1000):
         axes = []
