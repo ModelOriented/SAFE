@@ -21,7 +21,6 @@ class SafeTransformer(TransformerMixin):
         changepoints = []
         for i in range(self.x_dims):
             pdp, axis = self._get_partial_dependence(clf, i, X=X, grid_resolution=1000)
-            pdp2, axis2 = self._get_partial_dependence(clf, i, X=X, grid_resolution=1000)
             pdps.append(pdp[0])
             axes.append(axis[0])
         for i, pdp in enumerate(pdps):
@@ -37,7 +36,7 @@ class SafeTransformer(TransformerMixin):
         return self
         
     def transform(self, X):
-        new_data = [[len(list(filter(lambda e: x>=e, self.changepoint_values[current_dim]))) for x in X[:,current_dim]] 
+        new_data = [[len(list(filter(lambda e: x>=e, self.changepoint_values[current_dim]))) for x in X.iloc[:,current_dim]] 
                     for current_dim in range(self.x_dims)]
         new_data = pd.DataFrame(new_data).transpose()
         arrays = []
@@ -53,7 +52,7 @@ class SafeTransformer(TransformerMixin):
     def _get_partial_dependence(self, clf, i, X, grid_resolution=1000):
         axes = []
         pdp = []
-        points = np.linspace(min(X[:,i]), max(X[:,i]), grid_resolution)
+        points = np.linspace(min(X.iloc[:,i]), max(X.iloc[:,i]), grid_resolution)
         for point in points:
             X_copy = np.copy(X)
             axes.append(point)
