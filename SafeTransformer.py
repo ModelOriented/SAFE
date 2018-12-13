@@ -37,7 +37,7 @@ class SafeTransformer(TransformerMixin):
         self.changepoint_values = [[axes[n_dim][i-1] for i in changepoints[n_dim]]
                                    for n_dim in range(self.x_dims)]
         changepoint_names = [['%.2f' % self.changepoint_values[i][j] for j in range(len(self.changepoint_values[i]))] + ["+Inf"] for i in range(len(self.changepoint_values))]
-        self.names = [[str(base_names[i]) + "_(" + changepoint_names[i][j] + ", " + 
+        self.names = [[str(base_names[i]) + "_[" + changepoint_names[i][j] + ", " + 
                   changepoint_names[i][j+1]+")" for j in range(len(changepoint_names[i])-1)] for i in range(len(base_names))]
         self.names = [item for sublist in self.names for item in sublist]
         for categorical_group in self.categorical_groups:
