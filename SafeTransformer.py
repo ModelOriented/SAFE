@@ -4,27 +4,34 @@ from sklearn.ensemble.partial_dependence import partial_dependence
 from sklearn.base import TransformerMixin
 import pandas as pd
 
+
+class CategoricalMerging():
+
+    def __init__(self):
+        self.columns = []
+        self.merges = []
+        self.column_names = []
+
 class SafeTransformer(TransformerMixin):
     
     def __init__(self):
         self.changepoint_values = []
         self.x_dims = 0
     
-    def fit(self, X, clf, penalty=3):
-        if isinstance(X, pd.DataFrame):
-            base_names = list(X)
-        else:
-            base_names = ['X' + str(i) for i in range(X.shape[1])]
+    def fit(self, X, clf, categorical_groups=[[]], penalty=3, pelt_model ='l2'):
         pdps = []
         axes = []
+        self.categorical_groups = categorical_groups
+        self.categorical_columns = [item for sublist in self.categorical_groups for item in sublist]
+        base_names = list(X.drop(X.columns[self.categorical_columns], axis=1))
         self.x_dims = X.shape[1]
         changepoints = []
-        for i in range(self.x_dims):
+        for i in list(set(range(self.x_dims)) - set(self.categorical_columns)):
             pdp, axis = self._get_partial_dependence(clf, i, X=X, grid_resolution=1000)
             pdps.append(pdp[0])
             axes.append(axis[0])
         for i, pdp in enumerate(pdps):
-            algo = rpt.Pelt(model='l2').fit(pdp)
+            algo = rpt.Pelt(model=pelt_model).fit(pdp)
             my_bkps = algo.predict(pen=penalty) 
             changepoints.append(my_bkps)
         self.changepoint_values = [[axes[n_dim][i-1] for i in changepoints[n_dim]]
@@ -33,6 +40,8 @@ class SafeTransformer(TransformerMixin):
         self.names = [[str(base_names[i]) + "_(" + changepoint_names[i][j] + ", " + 
                   changepoint_names[i][j+1]+")" for j in range(len(changepoint_names[i])-1)] for i in range(len(base_names))]
         self.names = [item for sublist in self.names for item in sublist]
+        for categorical_group in self.categorical_groups:
+            preds = self._get_partial_dependence_categorical(clf, categorical_group, X)
         return self
         
     def transform(self, X):
@@ -61,7 +70,28 @@ class SafeTransformer(TransformerMixin):
             	predictions = clf.predict_proba(X_copy)
             else:
             	predictions = clf.predict(X_copy)
-            val = np.mean(predictions)
+            val = np.mean(predictions, axis=0)
             pdp.append(val)
         return [np.array(pdp)], [axes]
                              
+    def _get_partial_dependence_categorical(self, clf, cols, X):
+        pdp = []
+        X_copy = np.copy(X)
+        X_copy[:,cols] = 0
+        if(hasattr(clf, 'predict_proba')):
+            predictions = clf.predict_proba(X_copy)
+        else:
+            predictions = clf.predict(X_copy)
+        pdp.append(np.mean(predictions))
+        for col in cols:
+            X_copy = np.copy(X)
+            X_copy[:,cols] = 0
+            X_copy[:,col] = 1
+            if(hasattr(clf, 'predict_proba')):
+                predictions = clf.predict_proba(X_copy)
+            else:
+                predictions = clf.predict(X_copy)
+            pdp.append(np.mean(predictions), axis=0)
+        return predictions
+
+
