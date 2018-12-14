@@ -12,18 +12,20 @@ The division is based on the response of the surrogate model.
 In case of continuous dependent variables for each of them we find changepoints - points that indicate values of variable for which the response of the surrogate model changes quickly. Intervals between changepoints are the basis of the transformation, eg. feature is transformed to categorical variable, where feature values in the same interval form the same category. To find changepoints we need partial dependence plots. 
 These plots are graphical visualizations of the marginal effect of a given variable (or multiple variables) on an outcome of the model.
 
-Algotithm for creating partial dependence plot for single variable var:
+Algorithm for creating partial dependence plot for single variable var:
 
 1. Create linspace from minimal value of var to maximal value of var
 2. For each value from linspace named val:
-2.1. Replace all values of var in original data with val, keeping the rest of variables as they were
-2.2. Get surrogate model response for each of newly created vectors, and save mean of these responses with val associated with it
+* Replace all values of var in original data with val, keeping the rest of variables as they were
+* Get surrogate model response for each of newly created vectors, and save mean of these responses with val associated with it
 3. Partial dependence plot is created from vals in linspace and corresponiding mean of responses 
 
 To get changepoints from partial dependence plots we use ruptures library and its model Pelt.
 
+## Requirements
 
 ## Usage
 
+## Examples
 
 
