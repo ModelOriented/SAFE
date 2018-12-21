@@ -5,6 +5,43 @@ The idea is to use more complicated model - called surrogate model - to extract 
 Input data is divided into subsets, determined by surrogate model, and then it is transformed  based on the subset each point belonged to.
 Library provides you with SafeTransformer class, which implements TransformerMixin interface, so it can be used as a part of the scikit-learn pipeline.
 
+
+## Requirements
+
+To install this library run:
+
+```
+pip install safe-transformer
+```
+
+The only requirement is to have Python 3 installed on your machine.
+
+## Usage with example
+
+```python
+safe_transformer = SafeTransformer()
+
+safe_transformer = safe_transformer.fit(X_train, surrogate_model, penalty = pen)
+
+X_train_transformed = safe_transformer.transform(X_train)
+
+X_test_transformed = safe_transformer.transform(X_test)
+
+linear_model_transformed = LinearRegression()
+
+linear_model_transformed = linear_model_transformed.fit(X_train_transformed, y_train)
+
+```
+
+You can also use this trsnsformer as part of scikit-learn pipeline. 
+
+As you can see you can improve your simple model performance with help of the more complicated model.
+
+Depending on the penalty attribute you can achieve different results.
+
+![](pens.png)
+With correctly chosen penalty your simple model can achieve much better accuracy, close to accuracy of surrogate model.
+
 ## Algorithm
 
 Our goal is to divide each feature into subsets and then transform feature values based on the subset they belong to. 
@@ -20,12 +57,15 @@ Algorithm for creating partial dependence plot for single variable var:
 * Get surrogate model response for each of newly created vectors, and save mean of these responses with val associated with it
 3. Partial dependence plot is created from vals in linspace and corresponiding mean of responses 
 
+Here is example of partial dependence plot. It was created for boston housing data frame, variable in example is LSTAT.
+
+![](simple-plot.png)
+
 To get changepoints from partial dependence plots we use ruptures library and its model Pelt.
 
-## Requirements
+This is partial dependence plot with changepoints on it:
 
-## Usage
+![](changepoint.png)
 
-## Examples
 
 
