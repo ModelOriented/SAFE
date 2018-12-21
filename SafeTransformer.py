@@ -1,97 +1,179 @@
 import numpy as np
 import ruptures as rpt
-from sklearn.ensemble.partial_dependence import partial_dependence
 from sklearn.base import TransformerMixin
 import pandas as pd
+from sklearn.exceptions import NotFittedError
+from scipy.cluster.hierarchy import ward, cut_tree
+from kneed import KneeLocator
+import sys
 
 
-class CategoricalMerging():
+class Variable():
 
-    def __init__(self):
-        self.columns = []
-        self.merges = []
-        self.column_names = []
+	def __init__(self, name ,index):
+		self.original_name = name
+		self.original_index = index
+		self.new_names = None
+
+
+class NumericVariable(Variable):
+
+	def __init__(self, name, index, penalty, pelt_model):
+		super().__init__(name, index)
+		self.changepoints = []
+		self.penalty = penalty
+		self.pelt_model = pelt_model
+		self.changepoint_values = []
+
+	def _get_partial_dependence(self, model, X, grid_resolution=1000):
+		axes = []
+		pdp = []
+		points = np.linspace(min(X.loc[:,self.original_name]), max(X.loc[:,self.original_name]), grid_resolution)
+		X_copy = X.copy()
+		for point in points:
+			axes.append(point)
+			X_copy.loc[:,self.original_name] = point
+			if(hasattr(model, 'predict_proba')):
+				predictions = model.predict_proba(X_copy)
+			else:
+				predictions = model.predict(X_copy)
+			val = np.mean(predictions, axis=0)
+			pdp.append(val)
+		return np.array(pdp), axes
+
+	def fit(self, model, X):
+		pdp, axis = self._get_partial_dependence(model, X, grid_resolution=1000)
+		algo = rpt.Pelt(model=self.pelt_model).fit(pdp)
+		self.changepoints = algo.predict(pen=self.penalty)
+		self.changepoint_values = [axis[i] for i in self.changepoints[:-1]]
+		changepoint_names = ['%.2f' % self.changepoint_values[i] for i in range(len(self.changepoint_values))] + ['Inf']
+		self.new_names = [str(self.original_name) + "_[" + changepoint_names[i] + ", " + 
+			changepoint_names[i+1]+")" for i in range(len(changepoint_names)-1)]
+		return self
+
+	def transform(self, X):
+		new_data = [len(list(filter(lambda e: x>=e, self.changepoint_values))) for x in X.loc[:,self.original_name]]
+		ret = np.zeros([len(new_data), len(self.changepoint_values)])
+		for row_num, val in enumerate(new_data):
+			if val > 0:
+				ret[row_num, val - 1] = 1
+		return pd.DataFrame(ret, columns=self.new_names)
+
+
+
+class CategoricalVariable(Variable):
+
+	def __init__(self, name, index, dummy_names):
+		super().__init__(name, index)
+		self.dummy_names = dummy_names
+		self.axes = None
+		self.clusters = None
+		self.Z = None
+		self.pdp = None
+
+	def fit(self, model, X):
+		pdp, names  = self._get_partial_dependence(model, X)
+		self.pdp = pdp
+		self.axes = names
+		if pdp.ndim == 1:
+			arr = np.reshape(pdp, (len(pdp), 1))
+		else:
+			arr = pdp
+		self.Z = ward(arr)
+		if pdp.shape[0] > 3:
+			kneed = KneeLocator(range(self.Z.shape[0]), self.Z[:, 2], direction='increasing', curve='convex')
+			print(self.Z[kneed.knee_x-1, 2])
+			if kneed.knee is not None:
+				self.clusters = cut_tree(self.Z, height=self.Z[kneed.knee, 2] - sys.float_info.epsilon)
+				self.new_names = []
+				for cluster in range(len(np.unique(self.clusters))):
+					names = []
+					for idx, c_val in enumerate(self.clusters):
+						if c_val == cluster:
+							if idx == 0:
+								names.append('base')
+							else:
+								names.append(self.dummy_names[idx-1])
+					self.new_names.append("_".join(names))
+		return self
+
+	def transform(self, X):
+		dummies = pd.get_dummies(X.loc[:, self.original_name], prefix=self.original_name, drop_first=True)
+		if self.clusters is not None:
+			ret_len = len(np.unique(self.clusters)) - 1
+			ret = np.zeros([X.shape[0], ret_len])
+			for row_num in range(dummies.shape[0]):
+				if not np.sum(dummies.iloc[row_num,:]) == 0:
+					idx = np.argwhere(dummies.iloc[row_num,:] == 1)[0]
+					if self.clusters[idx] > 0:
+						ret[row_num, self.clusters[idx] - 1] = 1
+			return pd.DataFrame(ret, columns=self.new_names[1:])
+		return dummies
+
+
+	def _get_partial_dependence(self, model, X):
+		pdp = []
+		axes = []
+		X_copy = X.copy()
+		axes.append('base')
+		X_copy.loc[:, self.dummy_names] = 0
+		if(hasattr(model, 'predict_proba')):
+			predictions = model.predict_proba(X_copy)
+		else:
+			predictions = model.predict(X_copy)
+		val = np.mean(predictions, axis=0)
+		pdp.append(val)
+		for colname in self.dummy_names:
+			axes.append(colname)
+			X_copy.loc[:, self.dummy_names] = 0
+			X_copy.loc[:, colname] = 1
+			if(hasattr(model, 'predict_proba')):
+				predictions = model.predict_proba(X_copy)
+			else:
+				predictions = model.predict(X_copy)
+			val = np.mean(predictions, axis=0)
+			pdp.append(val)
+		return np.array(pdp), axes
+
+
 
 class SafeTransformer(TransformerMixin):
-    
-    def __init__(self):
-        self.changepoint_values = []
-        self.x_dims = 0
-    
-    def fit(self, X, clf, categorical_groups=[[]], penalty=3, pelt_model ='l2'):
-        pdps = []
-        axes = []
-        self.categorical_groups = categorical_groups
-        self.categorical_columns = [item for sublist in self.categorical_groups for item in sublist]
-        base_names = list(X.drop(X.columns[self.categorical_columns], axis=1))
-        self.x_dims = X.shape[1]
-        changepoints = []
-        for i in list(set(range(self.x_dims)) - set(self.categorical_columns)):
-            pdp, axis = self._get_partial_dependence(clf, i, X=X, grid_resolution=1000)
-            pdps.append(pdp[0])
-            axes.append(axis[0])
-        for i, pdp in enumerate(pdps):
-            algo = rpt.Pelt(model=pelt_model).fit(pdp)
-            my_bkps = algo.predict(pen=penalty) 
-            changepoints.append(my_bkps)
-        self.changepoint_values = [[axes[n_dim][i-1] for i in changepoints[n_dim]]
-                                   for n_dim in range(self.x_dims)]
-        changepoint_names = [['%.2f' % self.changepoint_values[i][j] for j in range(len(self.changepoint_values[i]))] + ["+Inf"] for i in range(len(self.changepoint_values))]
-        self.names = [[str(base_names[i]) + "_[" + changepoint_names[i][j] + ", " + 
-                  changepoint_names[i][j+1]+")" for j in range(len(changepoint_names[i])-1)] for i in range(len(base_names))]
-        self.names = [item for sublist in self.names for item in sublist]
-        for categorical_group in self.categorical_groups:
-            preds = self._get_partial_dependence_categorical(clf, categorical_group, X)
-        return self
-        
-    def transform(self, X):
-        new_data = [[len(list(filter(lambda e: x>=e, self.changepoint_values[current_dim]))) for x in X.iloc[:,current_dim]] 
-                    for current_dim in range(self.x_dims)]
-        new_data = pd.DataFrame(new_data).transpose()
-        arrays = []
-        for idx in new_data:
-            ret = np.zeros([len(new_data[idx]), len(self.changepoint_values[idx])])
-            for row_num, val in enumerate(new_data[idx]):
-                if val > 0:
-                    ret[row_num, val - 1] = 1
-            arrays.append(ret)
-        result = np.concatenate(arrays, axis=1)
-        return pd.DataFrame(result, columns=self.names)
-    
-    def _get_partial_dependence(self, clf, i, X, grid_resolution=1000):
-        axes = []
-        pdp = []
-        points = np.linspace(min(X.iloc[:,i]), max(X.iloc[:,i]), grid_resolution)
-        for point in points:
-            X_copy = np.copy(X)
-            axes.append(point)
-            X_copy[:,i] = point
-            if(hasattr(clf, 'predict_proba')):
-            	predictions = clf.predict_proba(X_copy)
-            else:
-            	predictions = clf.predict(X_copy)
-            val = np.mean(predictions, axis=0)
-            pdp.append(val)
-        return [np.array(pdp)], [axes]
-                             
-    def _get_partial_dependence_categorical(self, clf, cols, X):
-        pdp = []
-        X_copy = np.copy(X)
-        X_copy[:,cols] = 0
-        if(hasattr(clf, 'predict_proba')):
-            predictions = clf.predict_proba(X_copy)
-        else:
-            predictions = clf.predict(X_copy)
-        pdp.append(np.mean(predictions))
-        for col in cols:
-            X_copy = np.copy(X)
-            X_copy[:,cols] = 0
-            X_copy[:,col] = 1
-            if(hasattr(clf, 'predict_proba')):
-                predictions = clf.predict_proba(X_copy)
-            else:
-                predictions = clf.predict(X_copy)
-            pdp.append(np.mean(predictions), axis=0)
-        return predictions
+
+	categorical_dtypes = ['category', 'object']
+
+	def __init__(self):
+		self.variables = []
+		self.model = None
+
+	def _is_model_fitted(self, data):
+		try:
+			self.model.predict(data.head(1))
+			return True
+		except NotFittedError as e:
+			return False
+
+	def fit(self, X, model, y=None, penalty=3, pelt_model='l2', model_params={}):
+		self.model = model
+		if not isinstance(X, pd.DataFrame):
+			raise ValueError("Data must be a pandas DataFrame")
+		colnames = list(X)
+		for idx, name in enumerate(colnames):
+			if str(X.loc[:, name].dtype) in self.categorical_dtypes:
+				dummies = pd.get_dummies(X.loc[:, name], prefix=name, drop_first=True)
+				dummy_index  = X.columns.get_loc(name)
+				X = pd.concat([X.iloc[:,range(dummy_index)], dummies, X.iloc[:, range(dummy_index+1, len(X.columns))]], axis=1)
+				self.variables.append(CategoricalVariable(name, idx, list(dummies)))
+			else:
+				self.variables.append(NumericVariable(name, idx, penalty, pelt_model))
+		if not self._is_model_fitted(X):
+			self.model.fit(X, y, **model_params)
+		for variable in self.variables:
+			variable.fit(model, X)
+		return self
+
+	def transform(self, X):
+		vals = [var.transform(X) for var in self.variables]
+		return pd.concat(vals , axis=1)
+
 
 
