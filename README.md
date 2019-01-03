@@ -52,9 +52,9 @@ Algorithm for performing fit method is illustrated below:
 
 Here is example of partial dependence plot. It was created for boston housing data frame, variable in example is LSTAT. To get changepoints from partial dependence plots we use ruptures library and its model Pelt.
 
-|
-- | - 
-![alt](images/simple-plot.png) | ![alt](images/changepoint.png)
+| | |
+| - | - |
+| ![alt](images/simple-plot.png) | ![alt](images/changepoint.png) |
 
 Our algorithm works both for regression and classification problems. In case of regression we simply use model response for creating partial dependence plot and hierarchical clustering. As for classification we use predicted probabilities of each class.
 
@@ -63,7 +63,7 @@ Our algorithm works both for regression and classification problems. In case of 
 One of the parameters you can specify is penalty - it has an impact on the number of changepoints that will be created. Here you can see how the quality of the model changese with penalty. For reference results of surrogate and basic model are also in the plot.
 
 &nbsp;&nbsp;
-<img src="images/pens.png" alt="drawing" width="500"/>
+<img src="images/pens.png" alt="Model performance" width="500"/>
 &nbsp;&nbsp;
 
 With correctly chosen penalty your simple model can achieve much better accuracy, close to accuracy of surrogate model.
