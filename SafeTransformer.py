@@ -42,6 +42,7 @@ class NumericVariable(Variable):
 		return np.array(pdp), axes
 
 	def fit(self, model, X):
+		print('Fitting variable:'+ str(self.original_name))
 		pdp, axis = self._get_partial_dependence(model, X, grid_resolution=1000)
 		algo = rpt.Pelt(model=self.pelt_model).fit(pdp)
 		self.changepoints = algo.predict(pen=self.penalty)
@@ -52,6 +53,7 @@ class NumericVariable(Variable):
 		return self
 
 	def transform(self, X):
+		print('Transforming variable:'+str(self.original_name))
 		new_data = [len(list(filter(lambda e: x>=e, self.changepoint_values))) for x in X.loc[:,self.original_name]]
 		ret = np.zeros([len(new_data), len(self.changepoint_values)])
 		for row_num, val in enumerate(new_data):
@@ -72,6 +74,7 @@ class CategoricalVariable(Variable):
 		self.pdp = None
 
 	def fit(self, model, X):
+		print('Fitting variable:'+str(self.original_name))
 		pdp, names  = self._get_partial_dependence(model, X)
 		self.pdp = pdp
 		self.axes = names
@@ -80,9 +83,20 @@ class CategoricalVariable(Variable):
 		else:
 			arr = pdp
 		self.Z = ward(arr)
-		if pdp.shape[0] > 3:
+		if pdp.shape[0] == 3:
+			self.clusters = cut_tree(self.Z, height=self.Z[0, 2] - sys.float_info.epsilon)
+			self.new_names = []
+			for cluster in range(len(np.unique(self.clusters))):
+				names = []
+				for idx, c_val in enumerate(self.clusters):
+					if c_val == cluster:
+						if idx == 0:
+							names.append('base')
+						else:
+							names.append(self.dummy_names[idx-1][len(self.original_name)+1:])
+				self.new_names.append(self.original_name+'_'+"_".join(names))
+		elif pdp.shape[0] > 3:
 			kneed = KneeLocator(range(self.Z.shape[0]), self.Z[:, 2], direction='increasing', curve='convex')
-			print(self.Z[kneed.knee_x-1, 2])
 			if kneed.knee is not None:
 				self.clusters = cut_tree(self.Z, height=self.Z[kneed.knee, 2] - sys.float_info.epsilon)
 				self.new_names = []
@@ -93,11 +107,12 @@ class CategoricalVariable(Variable):
 							if idx == 0:
 								names.append('base')
 							else:
-								names.append(self.dummy_names[idx-1])
-					self.new_names.append("_".join(names))
+								names.append(self.dummy_names[idx-1][len(self.original_name)+1:])
+					self.new_names.append(self.original_name+'_'+"_".join(names))
 		return self
 
 	def transform(self, X):
+		print('Transforming variable:'+str(self.original_name))
 		dummies = pd.get_dummies(X.loc[:, self.original_name], prefix=self.original_name, drop_first=True)
 		if self.clusters is not None:
 			ret_len = len(np.unique(self.clusters)) - 1
@@ -174,7 +189,7 @@ class SafeTransformer(TransformerMixin):
 		return self
 
 	def transform(self, X):
-		vals = [var.transform(X) for var in self.variables]
+		vals = [var.transform(X).reset_index(drop=True) for var in self.variables]
 		return pd.concat(vals , axis=1)
 
 
