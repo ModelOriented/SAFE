@@ -18,29 +18,19 @@ The only requirement is to have Python 3 installed on your machine.
 
 ## Usage with example
 
-```python
-safe_transformer = SafeTransformer()
+Sample code using SAFE transformer as part of scikit-learn pipeline:
 
-safe_transformer = safe_transformer.fit(X_train, surrogate_model, penalty = pen)
-
-X_train_transformed = safe_transformer.transform(X_train)
-
-X_test_transformed = safe_transformer.transform(X_test)
-
-linear_model_transformed = LinearRegression()
-
-linear_model_transformed = linear_model_transformed.fit(X_train_transformed, y_train)
-
-```
-
-You can also use this trsnsformer as part of scikit-learn pipeline. 
+&nbsp;&nbsp;
+![](images/notebook.png)
+&nbsp;&nbsp;
 
 As you can see you can improve your simple model performance with help of the more complicated model.
 
-Depending on the penalty attribute you can achieve different results.
+You can use any model you like, as long as it has fit and predict methods in case of regression, or fit and predict_proba in case of classification. Data used to fit SAFE transformer needs to be pandas data frame. 
 
-![](pens.png)
-With correctly chosen penalty your simple model can achieve much better accuracy, close to accuracy of surrogate model.
+You can also specify penalty and pelt model arguments.
+
+In examples folder you can find jupyter notebooks with complete classification and regression examples.
 
 ## Algorithm
 
@@ -48,24 +38,39 @@ Our goal is to divide each feature into subsets and then transform feature value
 The division is based on the response of the surrogate model. 
 In case of continuous dependent variables for each of them we find changepoints - points that indicate values of variable for which the response of the surrogate model changes quickly. Intervals between changepoints are the basis of the transformation, eg. feature is transformed to categorical variable, where feature values in the same interval form the same category. To find changepoints we need partial dependence plots. 
 These plots are graphical visualizations of the marginal effect of a given variable (or multiple variables) on an outcome of the model.
-
-Algorithm for creating partial dependence plot for single variable var:
-
-1. Create linspace from minimal value of var to maximal value of var
-2. For each value from linspace named val:
-* Replace all values of var in original data with val, keeping the rest of variables as they were
-* Get surrogate model response for each of newly created vectors, and save mean of these responses with val associated with it
-3. Partial dependence plot is created from vals in linspace and corresponiding mean of responses 
-
-Here is example of partial dependence plot. It was created for boston housing data frame, variable in example is LSTAT.
-
-![](simple-plot.png)
-
-To get changepoints from partial dependence plots we use ruptures library and its model Pelt.
-
-This is partial dependence plot with changepoints on it:
-
-![](changepoint.png)
+In case of categorical variables for each of them we perform hierarchical clustering based on surrogate model responses.
 
 
+Algorithm for performing fit method is illustrated below:
+
+&nbsp;&nbsp;
+
+![*Fit method algorithm*](images/fl.svg)
+
+&nbsp;&nbsp;
+
+
+Here is example of partial dependence plot. It was created for boston housing data frame, variable in example is LSTAT. To get changepoints from partial dependence plots we use ruptures library and its model Pelt.
+
+|
+- | - 
+![alt](images/simple-plot.png) | ![alt](images/changepoint.png)
+
+Our algorithm works both for regression and classification problems. In case of regression we simply use model response for creating partial dependence plot and hierarchical clustering. As for classification we use predicted probabilities of each class.
+
+## Model optimization
+
+One of the parameters you can specify is penalty - it has an impact on the number of changepoints that will be created. Here you can see how the quality of the model changese with penalty. For reference results of surrogate and basic model are also in the plot.
+
+&nbsp;&nbsp;
+<img src="images/pens.png" alt="drawing" width="500"/>
+&nbsp;&nbsp;
+
+With correctly chosen penalty your simple model can achieve much better accuracy, close to accuracy of surrogate model.
+
+## References
+
+* Original Safe algorithm, implemented in R [Link](https://mi2datalab.github.io/SAFE/index.html)
+* ruptures library, used for finding changepoints [Link](https://github.com/deepcharles/ruptures)
+* kneed library, used for cutting hierarchical tree [Link](https://github.com/arvkevi/kneed)
 

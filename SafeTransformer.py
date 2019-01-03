@@ -141,9 +141,12 @@ class SafeTransformer(TransformerMixin):
 
 	categorical_dtypes = ['category', 'object']
 
-	def __init__(self):
+	def __init__(self, model, penalty=3, pelt_model='l2', model_params={}):
 		self.variables = []
-		self.model = None
+		self.model = model
+		self.penalty = penalty
+		self.pelt_model = pelt_model
+		self.model_params = model_params
 
 	def _is_model_fitted(self, data):
 		try:
@@ -152,8 +155,7 @@ class SafeTransformer(TransformerMixin):
 		except NotFittedError as e:
 			return False
 
-	def fit(self, X, model, y=None, penalty=3, pelt_model='l2', model_params={}):
-		self.model = model
+	def fit(self, X, y=None):
 		if not isinstance(X, pd.DataFrame):
 			raise ValueError("Data must be a pandas DataFrame")
 		colnames = list(X)
@@ -164,11 +166,11 @@ class SafeTransformer(TransformerMixin):
 				X = pd.concat([X.iloc[:,range(dummy_index)], dummies, X.iloc[:, range(dummy_index+1, len(X.columns))]], axis=1)
 				self.variables.append(CategoricalVariable(name, idx, list(dummies)))
 			else:
-				self.variables.append(NumericVariable(name, idx, penalty, pelt_model))
+				self.variables.append(NumericVariable(name, idx, self.penalty, self.pelt_model))
 		if not self._is_model_fitted(X):
-			self.model.fit(X, y, **model_params)
+			self.model.fit(X, y, **self.model_params)
 		for variable in self.variables:
-			variable.fit(model, X)
+			variable.fit(self.model, X)
 		return self
 
 	def transform(self, X):
