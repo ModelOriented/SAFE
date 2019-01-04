@@ -21,7 +21,7 @@ The only requirement is to have Python 3 installed on your machine.
 Sample code using SAFE transformer as part of scikit-learn pipeline:
 
 &nbsp;&nbsp;
-![](images/notebook.png)
+![](images/note.png)
 &nbsp;&nbsp;
 
 As you can see you can improve your simple model performance with help of the more complicated model.
