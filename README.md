@@ -70,7 +70,7 @@ With correctly chosen penalty your simple model can achieve much better accuracy
 
 ## References
 
-* Original Safe algorithm, implemented in R [Link](https://mi2datalab.github.io/SAFE/index.html)
-* ruptures library, used for finding changepoints [Link](https://github.com/deepcharles/ruptures)
-* kneed library, used for cutting hierarchical tree [Link](https://github.com/arvkevi/kneed)
+* [Original Safe algorithm](https://mi2datalab.github.io/SAFE/index.html), implemented in R 
+* [ruptures library](https://github.com/deepcharles/ruptures), used for finding changepoints
+* [kneed library](https://github.com/arvkevi/kneed), used for cutting hierarchical tree 
 
