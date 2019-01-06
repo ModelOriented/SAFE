@@ -98,7 +98,7 @@ class CategoricalVariable(Variable):
 		elif pdp.shape[0] > 3:
 			kneed = KneeLocator(range(self.Z.shape[0]), self.Z[:, 2], direction='increasing', curve='convex')
 			if kneed.knee is not None:
-				self.clusters = cut_tree(self.Z, height=self.Z[kneed.knee, 2] - sys.float_info.epsilon)
+				self.clusters = cut_tree(self.Z, height=self.Z[kneed.knee+1, 2] - sys.float_info.epsilon)
 				self.new_names = []
 				for cluster in range(len(np.unique(self.clusters))):
 					names = []
@@ -120,8 +120,8 @@ class CategoricalVariable(Variable):
 			for row_num in range(dummies.shape[0]):
 				if not np.sum(dummies.iloc[row_num,:]) == 0:
 					idx = np.argwhere(dummies.iloc[row_num,:] == 1)[0]
-					if self.clusters[idx] > 0:
-						ret[row_num, self.clusters[idx] - 1] = 1
+					if self.clusters[idx + 1] > 0:
+						ret[row_num, self.clusters[idx + 1] - 1] = 1
 			return pd.DataFrame(ret, columns=self.new_names[1:])
 		return dummies
 
