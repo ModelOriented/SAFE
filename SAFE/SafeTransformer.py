@@ -169,6 +169,8 @@ class SafeTransformer(TransformerMixin):
 			return True
 		except NotFittedError as e:
 			return False
+		except:
+			return False
 
 	def fit(self, X, y=None):
 		if not isinstance(X, pd.DataFrame):
