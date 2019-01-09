@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="SAFE",
+    name="safe-transformer",
     version="0.0.1",
     author="Aleksandra Gacek, Piotr Luboń",
     author_email="lubonp@student.mini.pw.edu.pl, gaceka@student.mini.pw.edu.pl",
