@@ -2,9 +2,9 @@
 
 SAFE is a python library that you can use to enhance your simple ML models.
 The idea is to use more complicated model - called surrogate model - to extract more information from features, which can be used later to fit some simpler model.
-Input data is divided into intervals, determined by surrogate model, and then it is transformed based on the interval each point belonged to.
+Input data is divided into intervals or new set of categories, determined by surrogate model, and then it is transformed based on the interval or category each point belonged to.
 Library provides you with SafeTransformer class, which implements TransformerMixin interface, so it can be used as a part of the scikit-learn pipeline.
-Using this library you can boost simple ML models, by transforming informations from more complicated models.
+Using this library you can boost simple ML models, by transferring informations from more complicated models.
 
 ## Requirements
 
@@ -74,7 +74,7 @@ In [examples folder](https://github.com/olagacek/SAFE/tree/master/examples) you 
 
 ## Algorithm
 
-Our goal is to divide each feature into intervals or  and then transform feature values based on the subset they belong to. 
+Our goal is to divide each feature into intervals or new categories and then transform feature values based on the subset they belonged to. 
 The division is based on the response of the surrogate model. 
 In case of continuous dependent variables for each of them we find changepoints - points that indicate values of variable for which the response of the surrogate model changes quickly. Intervals between changepoints are the basis of the transformation, eg. feature is transformed to categorical variable, where feature values in the same interval form the same category. To find changepoints we need partial dependence plots. 
 These plots are graphical visualizations of the marginal effect of a given variable (or multiple variables) on an outcome of the model.
@@ -99,7 +99,9 @@ Here is example of partial dependence plot. It was created for boston housing da
 
 ### Categorical variable transformation
 
-In the plot below there is illustarted categorical variable transformation.
+In the plot below there is illustarted categorical variable transformation. To create new categories, based on the average model responses, we use scikit-learn [ward algorithm](https://scikit-learn.org/0.15/modules/generated/sklearn.cluster.Ward.html) and to find number of clusters to cut KneeLocator class from [kneed library](https://github.com/arvkevi/kneed) is used.
+
+<img src="images/categorical.png" width="425"/> <img src="images/dendo.png" width="425"/> 
 
 ## Model optimization
 
