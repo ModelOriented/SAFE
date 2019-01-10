@@ -2,7 +2,7 @@
 
 SAFE is a python library that you can use to enhance your simple ML models.
 The idea is to use more complicated model - called surrogate model - to extract more information from features, which can be used later to fit some simpler model.
-Input data is divided into subsets, determined by surrogate model, and then it is transformed  based on the subset each point belonged to.
+Input data is divided into intervals, determined by surrogate model, and then it is transformed based on the interval each point belonged to.
 Library provides you with SafeTransformer class, which implements TransformerMixin interface, so it can be used as a part of the scikit-learn pipeline.
 
 
@@ -20,9 +20,34 @@ The only requirement is to have Python 3 installed on your machine.
 
 Sample code using SAFE transformer as part of scikit-learn pipeline:
 
-&nbsp;&nbsp;
-![](images/note.png)
-&nbsp;&nbsp;
+```python
+from SafeTransformer import SafeTransformer
+from sklearn.datasets import load_boston
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.model_selection import train_test_split
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+from sklearn.pipeline import Pipeline
+
+  
+data = load_boston()
+X = pd.DataFrame(data.data, columns=data.feature_names)
+y = data['target']
+
+surrogate_model = GradientBoostingRegressor(n_estimators=100,
+    max_depth=4,
+    learning_rate=0.1,
+    loss='huber')
+surrogate_model = surrogate_model.fit(X_train, y_train)
+
+linear_model = LinearRegression()
+safe_transformer = SafeTransformer(surrogate_model, penalty = 0.84)
+pipe = Pipeline(steps=[('safe', safe_transformer), ('linear', linear_model)])
+pipe = pipe.fit(X_train_df, y_train)
+predictions = pipe.predict(X_test)
+
+```
 
 As you can see you can improve your simple model performance with help of the more complicated model.
 
@@ -30,7 +55,7 @@ You can use any model you like, as long as it has fit and predict methods in cas
 
 You can also specify penalty and pelt model arguments.
 
-In examples folder you can find jupyter notebooks with complete classification and regression examples.
+In [examples folder](https://github.com/olagacek/SAFE/tree/master/examples) you can find jupyter notebooks with complete classification and regression examples.
 
 ## Algorithm
 
@@ -49,14 +74,17 @@ Algorithm for performing fit method is illustrated below:
 
 &nbsp;&nbsp;
 
-
-Here is example of partial dependence plot. It was created for boston housing data frame, variable in example is LSTAT. To get changepoints from partial dependence plots we use ruptures library and its model Pelt.
-
-| | |
-| - | - |
-| ![alt](images/simple-plot.png) | ![alt](images/changepoint.png) |
-
 Our algorithm works both for regression and classification problems. In case of regression we simply use model response for creating partial dependence plot and hierarchical clustering. As for classification we use predicted probabilities of each class.
+
+### Continuous variable transformation
+
+Here is example of partial dependence plot. It was created for boston housing data frame, variable in example is LSTAT. To get changepoints from partial dependence plots we use [ruptures](http://ctruong.perso.math.cnrs.fr/ruptures-docs/build/html/index.html) library and its model [Pelt](http://ctruong.perso.math.cnrs.fr/ruptures-docs/build/html/detection/pelt.html).
+
+<img src="images/simple-plot.png" width="425"/> <img src="images/changepoint.png" width="425"/> 
+
+### Categorical variable transformation
+
+In the plot below there is illustarted categorical variable transformation.
 
 ## Model optimization
 
