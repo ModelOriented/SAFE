@@ -105,3 +105,4 @@ venv.bak/
 
 # system files
 .DS_Store
+.Rproj.user

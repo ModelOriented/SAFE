@@ -1,2 +1,2 @@
 from .SafeTransformer import SafeTransformer
-name = "safe-transformers"
+name = "SafeTransformer"
