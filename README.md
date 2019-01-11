@@ -102,7 +102,7 @@ Here is example of partial dependence plot. It was created for boston housing da
 
 In the plot below there is illustarted categorical variable transformation. To create new categories, based on the average model responses, we use scikit-learn [ward algorithm](https://scikit-learn.org/0.15/modules/generated/sklearn.cluster.Ward.html) and to find number of clusters to cut KneeLocator class from [kneed library](https://github.com/arvkevi/kneed) is used.
 
-<img src="images/categorical.png" width="425"/> <img src="images/dendo.png" width="425"K/> 
+<img src="images/categorical.png" width="425"/> <img src="images/dendo.png" width="425"/> 
 
 ## Model optimization
 
