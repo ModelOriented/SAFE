@@ -63,17 +63,29 @@ class NumericVariable(Variable):
 				ret[row_num, val - 1] = 1
 		return pd.DataFrame(ret, columns=self.new_names)
 
+	def summary(self):
+		summary = 'Numerical Variable '+ self.original_name + '\n'
+		summary += 'Selected intervals:\n'
+		changepoint_names = ['%.2f' % self.changepoint_values[i] for i in range(len(self.changepoint_values))] + ['Inf']
+		interval_names = ['\t[-Inf, ' + changepoint_names[0]+ ')']
+		interval_names += ["\t[" + changepoint_names[i] + ", " + 
+			changepoint_names[i+1]+")" for i in range(len(changepoint_names)-1)]
+		summary += '\n'.join(interval_names)
+		return summary
+
 
 
 class CategoricalVariable(Variable):
 
-	def __init__(self, name, index, dummy_names):
+	def __init__(self, name, index, dummy_names,levels):
 		super().__init__(name, index)
 		self.dummy_names = dummy_names
 		self.axes = None
 		self.clusters = None
 		self.Z = None
 		self.pdp = None
+		self.levels = levels
+		self.levels.sort()
 
 	def fit(self, model, X, verbose):
 		if verbose:
@@ -114,7 +126,7 @@ class CategoricalVariable(Variable):
 					self.new_names.append(self.original_name+'_'+"_".join(names))
 		return self
 
-	def transform(self, X):
+	def transform(self, X, verbose):
 		if verbose:
 			print('Transforming variable:'+str(self.original_name))
 		dummies = pd.get_dummies(X.loc[:, self.original_name], prefix=self.original_name, drop_first=True)
@@ -154,6 +166,16 @@ class CategoricalVariable(Variable):
 			pdp.append(val)
 		return np.array(pdp), axes
 
+	def summary(self):
+		summary = 'Categorical Variable '+ self.original_name + '\n'
+		summary += 'Created variable levels:\n'
+		for i in range(len(np.unique(self.clusters))):
+			names = [self.axes[index] for index in list(np.argwhere(self.clusters == i)[:,0])]
+			if 'base' in names:
+				names[names.index('base')] = self.original_name + '_' + self.levels[0]
+			names = [x[len(self.original_name)+1:] for x in names]
+			summary += '\t'+', '.join(names) + ' -> ' + '_'.join(names) + '\n'
+		return summary
 
 
 class SafeTransformer(TransformerMixin):
@@ -166,6 +188,7 @@ class SafeTransformer(TransformerMixin):
 		self.penalty = penalty
 		self.pelt_model = pelt_model
 		self.model_params = model_params
+		self.is_fitted = False
 
 	def _is_model_fitted(self, data):
 		try:
@@ -179,24 +202,33 @@ class SafeTransformer(TransformerMixin):
 	def fit(self, X, y=None, verbose=False):
 		if not isinstance(X, pd.DataFrame):
 			raise ValueError("Data must be a pandas DataFrame")
+		if self.is_fitted:
+			raise RuntimeError('Model is already fitted')
 		colnames = list(X)
 		for idx, name in enumerate(colnames):
 			if str(X.loc[:, name].dtype) in self.categorical_dtypes:
+				levels = np.unique(X.loc[:, name])
 				dummies = pd.get_dummies(X.loc[:, name], prefix=name, drop_first=True)
 				dummy_index  = X.columns.get_loc(name)
 				X = pd.concat([X.iloc[:,range(dummy_index)], dummies, X.iloc[:, range(dummy_index+1, len(X.columns))]], axis=1)
-				self.variables.append(CategoricalVariable(name, idx, list(dummies)))
+				self.variables.append(CategoricalVariable(name, idx, list(dummies), levels=levels))
 			else:
 				self.variables.append(NumericVariable(name, idx, self.penalty, self.pelt_model))
 		if not self._is_model_fitted(X):
 			self.model.fit(X, y, **self.model_params)
 		for variable in self.variables:
 			variable.fit(self.model, X, verbose=verbose)
+		self.is_fitted = True
 		return self
 
 	def transform(self, X, verbose=False):
+		if not self.is_fitted:
+			raise RuntimeError('Model is not fitted')
 		vals = [var.transform(X, verbose).reset_index(drop=True) for var in self.variables]
 		return pd.concat(vals , axis=1)
 
+	def summary(self):
+		summaries = [var.summary() for var in self.variables]
+		print('\n'.join(summaries))
 
 
