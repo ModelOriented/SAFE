@@ -41,8 +41,9 @@ class NumericVariable(Variable):
 			pdp.append(val)
 		return np.array(pdp), axes
 
-	def fit(self, model, X):
-		print('Fitting variable:'+ str(self.original_name))
+	def fit(self, model, X, verbose):
+		if verbose:
+			print('Fitting variable:'+ str(self.original_name))
 		pdp, axis = self._get_partial_dependence(model, X, grid_resolution=1000)
 		algo = rpt.Pelt(model=self.pelt_model).fit(pdp)
 		self.changepoints = algo.predict(pen=self.penalty)
@@ -52,8 +53,9 @@ class NumericVariable(Variable):
 			changepoint_names[i+1]+")" for i in range(len(changepoint_names)-1)]
 		return self
 
-	def transform(self, X):
-		print('Transforming variable:'+str(self.original_name))
+	def transform(self, X, verbose):
+		if verbose:
+			print('Transforming variable:'+str(self.original_name))
 		new_data = [len(list(filter(lambda e: x>=e, self.changepoint_values))) for x in X.loc[:,self.original_name]]
 		ret = np.zeros([len(new_data), len(self.changepoint_values)])
 		for row_num, val in enumerate(new_data):
@@ -73,8 +75,9 @@ class CategoricalVariable(Variable):
 		self.Z = None
 		self.pdp = None
 
-	def fit(self, model, X):
-		print('Fitting variable:'+str(self.original_name))
+	def fit(self, model, X, verbose):
+		if verbose:
+			print('Fitting variable:'+str(self.original_name))
 		pdp, names  = self._get_partial_dependence(model, X)
 		self.pdp = pdp
 		self.axes = names
@@ -112,7 +115,8 @@ class CategoricalVariable(Variable):
 		return self
 
 	def transform(self, X):
-		print('Transforming variable:'+str(self.original_name))
+		if verbose:
+			print('Transforming variable:'+str(self.original_name))
 		dummies = pd.get_dummies(X.loc[:, self.original_name], prefix=self.original_name, drop_first=True)
 		if self.clusters is not None:
 			ret_len = len(np.unique(self.clusters)) - 1
@@ -172,7 +176,7 @@ class SafeTransformer(TransformerMixin):
 		except:
 			return False
 
-	def fit(self, X, y=None):
+	def fit(self, X, y=None, verbose=False):
 		if not isinstance(X, pd.DataFrame):
 			raise ValueError("Data must be a pandas DataFrame")
 		colnames = list(X)
@@ -187,11 +191,11 @@ class SafeTransformer(TransformerMixin):
 		if not self._is_model_fitted(X):
 			self.model.fit(X, y, **self.model_params)
 		for variable in self.variables:
-			variable.fit(self.model, X)
+			variable.fit(self.model, X, verbose=verbose)
 		return self
 
-	def transform(self, X):
-		vals = [var.transform(X).reset_index(drop=True) for var in self.variables]
+	def transform(self, X, verbose=False):
+		vals = [var.transform(X, verbose).reset_index(drop=True) for var in self.variables]
 		return pd.concat(vals , axis=1)
 
 
