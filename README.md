@@ -30,10 +30,11 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from sklearn.pipeline import Pipeline
 
-  
 data = load_boston()
 X = pd.DataFrame(data.data, columns=data.feature_names)
 y = data['target']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y)
 
 surrogate_model = GradientBoostingRegressor(n_estimators=100,
     max_depth=4,
@@ -44,14 +45,14 @@ surrogate_model = surrogate_model.fit(X_train, y_train)
 linear_model = LinearRegression()
 safe_transformer = SafeTransformer(surrogate_model, penalty = 0.84)
 pipe = Pipeline(steps=[('safe', safe_transformer), ('linear', linear_model)])
-pipe = pipe.fit(X_train_df, y_train)
+pipe = pipe.fit(X_train, y_train)
 predictions = pipe.predict(X_test)
 mean_squared_error(y_test, predictions)
 
 ```
 
-```
-12.326610503804211
+```bash
+13.617733207161479
 ```
 
 ```python
@@ -61,8 +62,8 @@ standard_predictions = linear_model_standard.predict(X_test)
 mean_squared_error(y_test, standard_predictions)
 ```
 
-```
-20.301143769321314
+```bash
+29.27790566931337
 ```
 
 As you can see you can improve your simple model performance with help of the more powerful, black-box model, keeping the interpretability of the simple model.
@@ -114,6 +115,173 @@ One of the parameters you can specify is penalty - it has an impact on the numbe
 
 With correctly chosen penalty your simple model can achieve much better accuracy, close to accuracy of surrogate model.
 
+## Variables transformation
+
+If you are interested in how your dataset was changed you can check summary method. 
+
+```python
+safe_transformer.summary(variable_name='CRIM')
+```
+
+```
+Numerical Variable CRIM
+Selected intervals:
+	[-Inf, 4.90)
+	[4.90, 11.14)
+	[11.14, 15.59)
+	[15.59, 24.50)
+	[24.50, 33.40)
+	[33.40, 48.54)
+	[48.54, Inf)
+```
+
+To see transformations of all the variables do not specify variable_name argument.
+
+```python
+safe_transformer.summary()
+```
+
+```
+Numerical Variable CRIM
+Selected intervals:
+	[-Inf, 4.90)
+	[4.90, 11.14)
+	[11.14, 15.59)
+	[15.59, 24.50)
+	[24.50, 33.40)
+	[33.40, 48.54)
+	[48.54, Inf)
+Numerical Variable ZN
+Selected intervals:
+	[-Inf, 33.53)
+	[33.53, Inf)
+Numerical Variable INDUS
+Selected intervals:
+	[-Inf, 2.78)
+	[2.78, 3.19)
+	[3.19, 4.28)
+	[4.28, 10.29)
+	[10.29, 26.68)
+	[26.68, Inf)
+Numerical Variable CHAS
+Selected intervals:
+	[-Inf, Inf)
+Numerical Variable NOX
+Selected intervals:
+	[-Inf, 0.52)
+	[0.52, 0.60)
+	[0.60, 0.67)
+	[0.67, 0.68)
+	[0.68, 0.70)
+	[0.70, 0.76)
+	[0.76, 0.82)
+	[0.82, Inf)
+Numerical Variable RM
+Selected intervals:
+	[-Inf, 4.27)
+	[4.27, 4.76)
+	[4.76, 5.10)
+	[5.10, 5.42)
+	[5.42, 5.78)
+	[5.78, 6.09)
+	[6.09, 6.36)
+	[6.36, 6.54)
+	[6.54, 6.64)
+	[6.64, 6.75)
+	[6.75, 6.85)
+	[6.85, 7.09)
+	[7.09, 7.14)
+	[7.14, 7.43)
+	[7.43, 7.45)
+	[7.45, 7.79)
+	[7.79, 7.82)
+	[7.82, 7.84)
+	[7.84, 8.03)
+	[8.03, Inf)
+Numerical Variable AGE
+Selected intervals:
+	[-Inf, 4.36)
+	[4.36, 6.30)
+	[6.30, 34.00)
+	[34.00, 45.18)
+	[45.18, 58.30)
+	[58.30, 66.56)
+	[66.56, 69.48)
+	[69.48, 83.09)
+	[83.09, 98.15)
+	[98.15, Inf)
+Numerical Variable DIS
+Selected intervals:
+	[-Inf, 1.22)
+	[1.22, 1.28)
+	[1.28, 1.33)
+	[1.33, 1.44)
+	[1.44, 1.50)
+	[1.50, 1.55)
+	[1.55, 2.10)
+	[2.10, 3.09)
+	[3.09, 3.75)
+	[3.75, 4.19)
+	[4.19, 5.61)
+	[5.61, 6.16)
+	[6.16, 7.80)
+	[7.80, Inf)
+Numerical Variable RAD
+Selected intervals:
+	[-Inf, 1.46)
+	[1.46, 4.57)
+	[4.57, 15.96)
+	[15.96, Inf)
+Numerical Variable TAX
+Selected intervals:
+	[-Inf, 207.98)
+	[207.98, 221.09)
+	[221.09, 278.79)
+	[278.79, 412.55)
+	[412.55, 551.54)
+	[551.54, 687.92)
+	[687.92, Inf)
+Numerical Variable PTRATIO
+Selected intervals:
+	[-Inf, 13.82)
+	[13.82, 13.87)
+	[13.87, 14.76)
+	[14.76, 17.73)
+	[17.73, 19.42)
+	[19.42, 19.66)
+	[19.66, 20.97)
+	[20.97, Inf)
+Numerical Variable B
+Selected intervals:
+	[-Inf, 30.09)
+	[30.09, 105.52)
+	[105.52, 115.44)
+	[115.44, 292.10)
+	[292.10, 304.01)
+	[304.01, 361.57)
+	[361.57, 377.45)
+	[377.45, Inf)
+Numerical Variable LSTAT
+Selected intervals:
+	[-Inf, 4.55)
+	[4.55, 4.73)
+	[4.73, 5.43)
+	[5.43, 5.96)
+	[5.96, 7.55)
+	[7.55, 8.08)
+	[8.08, 9.67)
+	[9.67, 9.85)
+	[9.85, 10.02)
+	[10.02, 14.43)
+	[14.43, 14.96)
+	[14.96, 16.02)
+	[16.02, 18.14)
+	[18.14, 19.37)
+	[19.37, 23.96)
+	[23.96, 26.78)
+	[26.78, 29.61)
+	[29.61, Inf)
+```
 ## References
 
 * [Original Safe algorithm](https://mi2datalab.github.io/SAFE/index.html), implemented in R 

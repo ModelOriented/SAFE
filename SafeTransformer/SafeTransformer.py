@@ -227,8 +227,9 @@ class SafeTransformer(TransformerMixin):
 		vals = [var.transform(X, verbose).reset_index(drop=True) for var in self.variables]
 		return pd.concat(vals , axis=1)
 
-	def summary(self):
-		summaries = [var.summary() for var in self.variables]
+	def summary(self, variable_name=None):
+		if variable_name != None:
+			summaries = [var.summary() for var in filter(lambda var: var.original_name==variable_name, self.variables)]
+		else:
+			summaries = [var.summary() for var in self.variables]
 		print('\n'.join(summaries))
-
-
