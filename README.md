@@ -288,3 +288,4 @@ Selected intervals:
 * [ruptures library](https://github.com/deepcharles/ruptures), used for finding changepoints
 * [kneed library](https://github.com/arvkevi/kneed), used for cutting hierarchical tree 
 
+The project was made on [research workshops classes](https://github.com/pbiecek/CaseStudies2019W) at the Warsaw University of Technology at the Faculty of Mathematics and Information Science by Aleksandra Gacek and Piotr Luboń.
