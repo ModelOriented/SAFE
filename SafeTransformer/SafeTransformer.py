@@ -169,13 +169,17 @@ class CategoricalVariable(Variable):
 	def summary(self):
 		summary = 'Categorical Variable '+ self.original_name + '\n'
 		summary += 'Created variable levels:\n'
-		for i in range(len(np.unique(self.clusters))):
-			names = [self.axes[index] for index in list(np.argwhere(self.clusters == i)[:,0])]
-			if 'base' in names:
-				names[names.index('base')] = self.original_name + '_' + self.levels[0]
-			names = [x[len(self.original_name)+1:] for x in names]
-			summary += '\t'+', '.join(names) + ' -> ' + '_'.join(names) + '\n'
-		return summary
+		if self.clusters is None:
+			for level in self.levels:
+				summary += '\t' + level + ' -> ' + level + '\n' 
+		else:
+			for i in range(len(np.unique(self.clusters))):
+				names = [self.axes[index] for index in list(np.argwhere(self.clusters == i)[:,0])]
+				if 'base' in names:
+					names[names.index('base')] = self.original_name + '_' + self.levels[0]
+				names = [x[len(self.original_name)+1:] for x in names]
+				summary += '\t'+', '.join(names) + ' -> ' + '_'.join(names) + '\n'
+		return summary.rstrip()
 
 
 class SafeTransformer(TransformerMixin):
