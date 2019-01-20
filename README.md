@@ -163,104 +163,11 @@ Selected intervals:
 	[4.28, 10.29)
 	[10.29, 26.68)
 	[26.68, Inf)
-Numerical Variable CHAS
-Selected intervals:
-	[-Inf, Inf)
-Numerical Variable NOX
-Selected intervals:
-	[-Inf, 0.52)
-	[0.52, 0.60)
-	[0.60, 0.67)
-	[0.67, 0.68)
-	[0.68, 0.70)
-	[0.70, 0.76)
-	[0.76, 0.82)
-	[0.82, Inf)
-Numerical Variable RM
-Selected intervals:
-	[-Inf, 4.27)
-	[4.27, 4.76)
-	[4.76, 5.10)
-	[5.10, 5.42)
-	[5.42, 5.78)
-	[5.78, 6.09)
-	[6.09, 6.36)
-	[6.36, 6.54)
-	[6.54, 6.64)
-	[6.64, 6.75)
-	[6.75, 6.85)
-	[6.85, 7.09)
-	[7.09, 7.14)
-	[7.14, 7.43)
-	[7.43, 7.45)
-	[7.45, 7.79)
-	[7.79, 7.82)
-	[7.82, 7.84)
-	[7.84, 8.03)
-	[8.03, Inf)
-Numerical Variable AGE
-Selected intervals:
-	[-Inf, 4.36)
-	[4.36, 6.30)
-	[6.30, 34.00)
-	[34.00, 45.18)
-	[45.18, 58.30)
-	[58.30, 66.56)
-	[66.56, 69.48)
-	[69.48, 83.09)
-	[83.09, 98.15)
-	[98.15, Inf)
-Numerical Variable DIS
-Selected intervals:
-	[-Inf, 1.22)
-	[1.22, 1.28)
-	[1.28, 1.33)
-	[1.33, 1.44)
-	[1.44, 1.50)
-	[1.50, 1.55)
-	[1.55, 2.10)
-	[2.10, 3.09)
-	[3.09, 3.75)
-	[3.75, 4.19)
-	[4.19, 5.61)
-	[5.61, 6.16)
-	[6.16, 7.80)
-	[7.80, Inf)
-Numerical Variable RAD
-Selected intervals:
-	[-Inf, 1.46)
-	[1.46, 4.57)
-	[4.57, 15.96)
-	[15.96, Inf)
-Numerical Variable TAX
-Selected intervals:
-	[-Inf, 207.98)
-	[207.98, 221.09)
-	[221.09, 278.79)
-	[278.79, 412.55)
-	[412.55, 551.54)
-	[551.54, 687.92)
-	[687.92, Inf)
-Numerical Variable PTRATIO
-Selected intervals:
-	[-Inf, 13.82)
-	[13.82, 13.87)
-	[13.87, 14.76)
-	[14.76, 17.73)
-	[17.73, 19.42)
-	[19.42, 19.66)
-	[19.66, 20.97)
-	[20.97, Inf)
-Numerical Variable B
-Selected intervals:
-	[-Inf, 30.09)
-	[30.09, 105.52)
-	[105.52, 115.44)
-	[115.44, 292.10)
-	[292.10, 304.01)
-	[304.01, 361.57)
-	[361.57, 377.45)
-	[377.45, Inf)
+	
+.
+.
+.
+
 Numerical Variable LSTAT
 Selected intervals:
 	[-Inf, 4.55)
@@ -288,3 +195,4 @@ Selected intervals:
 * [ruptures library](https://github.com/deepcharles/ruptures), used for finding changepoints
 * [kneed library](https://github.com/arvkevi/kneed), used for cutting hierarchical tree 
 
+The project was made on [research workshops classes](https://github.com/pbiecek/CaseStudies2019W) at the Warsaw University of Technology at the Faculty of Mathematics and Information Science by Aleksandra Gacek and Piotr Luboń.
