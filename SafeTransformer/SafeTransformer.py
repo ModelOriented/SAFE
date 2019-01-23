@@ -183,10 +183,25 @@ class CategoricalVariable(Variable):
 
 
 class SafeTransformer(TransformerMixin):
+    """
+    Transform dataset using outputs of complex model. Safe detects which values of variable strongly influence predctions
+    and transforms variable into a new, discrete, with each level corresponding to values for which the reponses of surrogate
+    model are similiar. Such variables can be fed to another, interpretable model to obtain enchanced predictions compared to using 
+    standard dataset.
+    """
 
 	categorical_dtypes = ['category', 'object']
 
 	def __init__(self, model, penalty=3, pelt_model='l2', model_params={}):
+		"""
+		Initialize new transformer instance
+		:param model: Surrogate model. If model is not fitted, y parameter must be passed to fit method. Regression models should implement predict method, while
+		classification models should implement predict_proba for getting predictions. If predict_proba  methode exists model is assumed to be a classification model 
+		:param penalty: Penalty corresponding to adding a new changepoint. The higher the value of penalty the smaller nunber of levels of transformed variables
+		will be created (Default value = 3)
+		:param pelt_model: Cost function used in pelt algorith, possible values: 'l2', 'l1', 'rbf' (Default value = 'l2')
+		:param model_params: Dictionary of paramters passed to fit method of surrogate model. Only used if passed surrogate model is not alreedy fitted.
+		"""
 		self.variables = []
 		self.model = model
 		self.penalty = penalty
@@ -204,6 +219,15 @@ class SafeTransformer(TransformerMixin):
 			return False
 
 	def fit(self, X, y=None, verbose=False):
+		"""
+		Fit the transformer. For continous variables intervals for which reponse of surrogate models does not vary are found. For categorical variables average reponses for
+		each level are found, and then levels with similiar reponse leveles are marked for merging.
+		:param X: A pandas data frame of predictors. Columns of dtypes category and object are assumed to be categorical variables, while other columns will be treated
+		as continous variables 
+		:param y:  A vector of response. Only used if passed surrogate model is not already fitted to fit the surrogate model.(Default value = None)
+		:param verbose:  If true logs will be printed.(Default value = False)
+
+		"""
 		if not isinstance(X, pd.DataFrame):
 			raise ValueError("Data must be a pandas DataFrame")
 		if self.is_fitted:
@@ -226,12 +250,26 @@ class SafeTransformer(TransformerMixin):
 		return self
 
 	def transform(self, X, verbose=False):
+		"""
+		Transforms a data frame of predictors. Continous variables are transformed into a discrete variable, with each level corresponding to an interval of original
+		variable for which reponses of surrogate model did not vary. For categorical variables levels with similiar model response will be merged into one new level.
+		All variable are one-hot encoded in p-1 columns where p is the number of levels (first level is represented by having zeros in each column).
+		:param X: A pandas date frame to be transformed. Should have the same columns as the one passed  to fit.
+		:param verbose:  If true logs will be printed.(Default value = False)
+
+		"""
 		if not self.is_fitted:
 			raise RuntimeError('Model is not fitted')
 		vals = [var.transform(X, verbose).reset_index(drop=True) for var in self.variables]
 		return pd.concat(vals , axis=1)
 
 	def summary(self, variable_name=None):
+		"""
+		Describes how variables were transformed in human readable way. For continous variables intervals corresponding to levels of newly created categorical variable are printed.
+		For categorical variables information about which levels were merged is shown.
+		:param variable_name: If None summary for all variables will be printed. Otherwise summary will be shown only for the selected variable.  (Default value = None)
+
+		"""
 		if variable_name != None:
 			summaries = [var.summary() for var in filter(lambda var: var.original_name==variable_name, self.variables)]
 		else:
