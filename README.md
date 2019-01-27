@@ -74,6 +74,8 @@ You can also specify penalty and pelt model arguments.
 
 In [examples folder](https://github.com/olagacek/SAFE/tree/master/examples) you can find jupyter notebooks with complete classification and regression examples.
 
+API reference documentation can be found [here](https://plubon.github.io/safe-docs/)
+
 ## Algorithm
 
 Our goal is to divide each feature into intervals or new categories and then transform feature values based on the subset they belonged to. 
