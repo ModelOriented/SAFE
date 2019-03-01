@@ -5,6 +5,7 @@ The idea is to use more complicated model - called surrogate model - to extract 
 Input data is divided into intervals or new set of categories, determined by surrogate model, and then it is transformed based on the interval or category each point belonged to.
 Library provides you with SafeTransformer class, which implements TransformerMixin interface, so it can be used as a part of the scikit-learn pipeline.
 Using this library you can boost simple ML models, by transferring informations from more complicated models.
+Article about SAFE on can be found [here](https://arxiv.org/abs/1902.11035).
 
 ## Requirements
 
@@ -196,5 +197,6 @@ Selected intervals:
 * [Original Safe algorithm](https://mi2datalab.github.io/SAFE/index.html), implemented in R 
 * [ruptures library](https://github.com/deepcharles/ruptures), used for finding changepoints
 * [kneed library](https://github.com/arvkevi/kneed), used for cutting hierarchical tree 
+* [SAFE article](https://arxiv.org/abs/1902.11035) - article about SAFE algorithm, including benchmark results using SAFE library
 
 The project was made on [research workshops classes](https://github.com/pbiecek/CaseStudies2019W) at the Warsaw University of Technology at the Faculty of Mathematics and Information Science by Aleksandra Gacek and Piotr Luboń.
