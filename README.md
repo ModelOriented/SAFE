@@ -1,3 +1,7 @@
+[![Downloads](https://pepy.tech/badge/safe-transformer)](https://pepy.tech/project/safe-transformer)
+[![PyPI version](https://badge.fury.io/py/safe-transformer.svg)](https://badge.fury.io/py/safe-transformer)
+
+
 # SAFE - Surrogate Assisted Feature Extraction
 
 SAFE is a python library that you can use to build better explainable ML models leveraging capabilities of more powerful, black-box models. 
