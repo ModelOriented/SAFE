@@ -50,7 +50,7 @@ class NumericVariable(Variable):
 		algo = rpt.Pelt(model=self.pelt_model).fit(pdp)
 		self.changepoints = algo.predict(pen=self.penalty)
 		self.changepoint_values = [axis[i] for i in self.changepoints[:-1]]
-		if not self.changepoints_values and self.no_changepoint_strategy == 'median':
+		if not self.changepoint_values and self.no_changepoint_strategy == 'median':
 			self.changepoint_values = [np.median(X)]
 		changepoint_names = ['%.2f' % self.changepoint_values[i]
 		    for i in range(len(self.changepoint_values))] + ['Inf']
