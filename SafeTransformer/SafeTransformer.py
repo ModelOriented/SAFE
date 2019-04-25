@@ -224,6 +224,8 @@ class SafeTransformer(TransformerMixin):
 		self.pelt_model = pelt_model
 		self.model_params = model_params
 		self.is_fitted = False
+		if no_changepoint_strategy != 'median' and no_changepoint_strategy != 'no_value':
+			raise ValueError('Incorrect no changepoint strategy value. Should be one of: median or no_value.')
 		self.no_changepoint_strategy = no_changepoint_strategy
 
 	def _is_model_fitted(self, data):
