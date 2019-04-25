@@ -18,12 +18,13 @@ class Variable():
 
 class NumericVariable(Variable):
 
-	def __init__(self, name, index, penalty, pelt_model):
+	def __init__(self, name, index, penalty, pelt_model, no_changepoint_strategy='median'):
 		super().__init__(name, index)
 		self.changepoints = []
 		self.penalty = penalty
 		self.pelt_model = pelt_model
 		self.changepoint_values = []
+		self.no_changepoint_strategy = no_changepoint_strategy
 
 	def _get_partial_dependence(self, model, X, grid_resolution=1000):
 		axes = []
@@ -49,6 +50,8 @@ class NumericVariable(Variable):
 		algo = rpt.Pelt(model=self.pelt_model).fit(pdp)
 		self.changepoints = algo.predict(pen=self.penalty)
 		self.changepoint_values = [axis[i] for i in self.changepoints[:-1]]
+		if not self.changepoints_values and self.no_changepoint_strategy == 'median':
+			self.changepoint_values = [np.median(X)]
 		changepoint_names = ['%.2f' % self.changepoint_values[i]
 		    for i in range(len(self.changepoint_values))] + ['Inf']
 		self.new_names = [str(self.original_name) + "_[" + changepoint_names[i] + ", " +
@@ -205,15 +208,15 @@ class SafeTransformer(TransformerMixin):
 
 	categorical_dtypes = ['category', 'object']
 
-	def __init__(self, model, penalty=3, pelt_model='l2', model_params={}):
+	def __init__(self, model, penalty=3, pelt_model='l2', model_params={}, no_changepoint_strategy='median'):
 		"""
 		Initialize new transformer instance
 
-		:param model: Surrogate model. If model is not fitted, y parameter must be passed to fit method. Regression models should implement predict method, whileclassification models should implement predict_proba for getting predictions. If predict_proba  methode exists model is assumed to be a classification model
+		:param model: Surrogate model. If model is not fitted, y parameter must be passed to fit method. Regression models should implement predict method, while classification models should implement predict_proba for getting predictions. If predict_proba  methode exists model is assumed to be a classification model
 		:param penalty: Penalty corresponding to adding a new changepoint. The higher the value of penalty the smaller nunber of levels of transformed variableswill be created (Default value = 3)
 		:param pelt_model: Cost function used in pelt algorith, possible values: 'l2', 'l1', 'rbf' (Default value = 'l2')
-		:param model_params: Dictionary of paramters passed to fit method of surrogate model. Only used if passed surrogate model is not alreedy fitted.
-		
+		:param model_params: Dictionary of parameters passed to fit method of surrogate model. Only used if passed surrogate model is not alreedy fitted.
+		:param no_changepoint_strategy: String specifying strategy to take, when no changepoint was detected. Should be one of: 'median', 'no_value'. If median is chosen, then there will be one changepoint set to 'median' value of a column. If 'no_value' is specified column will be removed. Default value = 'median'.
 		"""
 		self.variables = []
 		self.model = model
@@ -221,6 +224,7 @@ class SafeTransformer(TransformerMixin):
 		self.pelt_model = pelt_model
 		self.model_params = model_params
 		self.is_fitted = False
+		self.no_changepoint_strategy = no_changepoint_strategy
 
 	def _is_model_fitted(self, data):
 		try:
@@ -253,7 +257,7 @@ class SafeTransformer(TransformerMixin):
 				X = pd.concat([X.iloc[:,range(dummy_index)], dummies, X.iloc[:, range(dummy_index+1, len(X.columns))]], axis=1)
 				self.variables.append(CategoricalVariable(name, idx, list(dummies), levels=levels))
 			else:
-				self.variables.append(NumericVariable(name, idx, self.penalty, self.pelt_model))
+				self.variables.append(NumericVariable(name, idx, self.penalty, self.pelt_model, self.no_changepoint_strategy))
 		if not self._is_model_fitted(X):
 			self.model.fit(X, y, **self.model_params)
 		for variable in self.variables:
