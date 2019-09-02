@@ -108,13 +108,13 @@ Here is example of partial dependence plot. It was created for boston housing da
 
 ### Categorical variable transformation
 
-In the plot below there is illustarted categorical variable transformation. To create new categories, based on the average model responses, we use scikit-learn [ward algorithm](https://scikit-learn.org/0.15/modules/generated/sklearn.cluster.Ward.html) and to find number of clusters to cut KneeLocator class from [kneed library](https://github.com/arvkevi/kneed) is used.
+In the plot below there is illustrated categorical variable transformation. To create new categories, based on the average model responses, we use scikit-learn [ward algorithm](https://scikit-learn.org/0.15/modules/generated/sklearn.cluster.Ward.html) and to find number of clusters to cut KneeLocator class from [kneed library](https://github.com/arvkevi/kneed) is used.
 
 <img src="images/categorical.png" width="425"/> <img src="images/dendo.png" width="425"/> 
 
 ## Model optimization
 
-One of the parameters you can specify is penalty - it has an impact on the number of changepoints that will be created. Here you can see how the quality of the model changese with penalty. For reference results of surrogate and basic model are also in the plot.
+One of the parameters you can specify is penalty - it has an impact on the number of changepoints that will be created. Here you can see how the quality of the model changes with penalty. For reference results of surrogate and basic model are also in the plot.
 
 &nbsp;&nbsp;
 <img src="images/pens.png" alt="Model performance" width="500"/>
