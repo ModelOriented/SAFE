@@ -49,7 +49,9 @@ class NumericVariable(Variable):
 		elif dependence_method == "shap":
 			explainer = shap.Explainer(model)
 			shap_values = explainer.shap_values(X)
-			axes = np.unique(X.values[:, self.original_index])
+			if type(shap_values) is list:
+				shap_values = shap_values[0]
+			axes = np.unique(X.loc[:, self.original_name])
 			for value in axes:
 				mean_shap = np.mean([shap_values[idx, self.original_index] for idx in range(len(axes)) if axes[idx] == value])	
 				pdp.append(mean_shap)
