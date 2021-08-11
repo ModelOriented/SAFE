@@ -198,7 +198,7 @@ Selected intervals:
 ```
 ## References
 
-* [Original Safe algorithm](https://mi2datalab.github.io/SAFE/index.html), implemented in R 
+* [Original Safe algorithm](https://ModelOriented.github.io/SAFE/index.html), implemented in R 
 * [ruptures library](https://github.com/deepcharles/ruptures), used for finding changepoints
 * [kneed library](https://github.com/arvkevi/kneed), used for cutting hierarchical tree 
 * [SAFE article](https://arxiv.org/abs/1902.11035) - article about SAFE algorithm, including benchmark results using SAFE library
