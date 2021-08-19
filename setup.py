@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="safe-transformer",
-    version="0.0.4",
+    version="0.0.6",
     author="Aleksandra Gacek, Piotr Luboń",
     author_email="lubonp@student.mini.pw.edu.pl, gaceka@student.mini.pw.edu.pl",
     description="Build explainable ML models using surrogate models.",
@@ -19,7 +19,8 @@ setuptools.setup(
           'sklearn',
           'pandas',
           'scipy',
-          'kneed'
+          'kneed',
+          'shap'
       ],
     classifiers=[
         "Programming Language :: Python :: 3",

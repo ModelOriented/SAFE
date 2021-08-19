@@ -1,11 +1,14 @@
 import numpy as np
 import ruptures as rpt
-from sklearn.base import TransformerMixin
 import pandas as pd
+import sys
+import shap
+
 from sklearn.exceptions import NotFittedError
 from scipy.cluster.hierarchy import ward, cut_tree
 from kneed import KneeLocator
-import sys
+from sklearn.base import TransformerMixin
+from os import error
 
 
 class Variable():
@@ -18,36 +21,50 @@ class Variable():
 
 class NumericVariable(Variable):
 
-	def __init__(self, name, index, penalty, pelt_model, no_changepoint_strategy='median'):
+	def __init__(self, name, index, penalty, pelt_model, no_changepoint_strategy='median', dependence_method = 'pdp'):
 		super().__init__(name, index)
 		self.changepoints = []
 		self.penalty = penalty
 		self.pelt_model = pelt_model
 		self.changepoint_values = []
 		self.no_changepoint_strategy = no_changepoint_strategy
+		self.dependence_method = dependence_method
 
-	def _get_partial_dependence(self, model, X, grid_resolution=1000):
+	def _get_partial_dependence(self, model, X, grid_resolution=1000, dependence_method='pdp'):
 		axes = []
-		pdp = []
-		points = np.linspace(min(X.loc[:, self.original_name]), max(
-		    X.loc[:, self.original_name]), grid_resolution)
-		X_copy = X.copy()
-		for point in points:
-			axes.append(point)
-			X_copy.loc[:, self.original_name] = point
-			if(hasattr(model, 'predict_proba')):
-				predictions = model.predict_proba(X_copy)
-			else:
-				predictions = model.predict(X_copy)
-			val = np.mean(predictions, axis=0)
-			pdp.append(val)
+		pdp = []	
+		if dependence_method == 'pdp':
+			points = np.linspace(min(X.loc[:, self.original_name]), max(
+				X.loc[:, self.original_name]), grid_resolution)
+			X_copy = X.copy()
+			for point in points:
+				axes.append(point)
+				X_copy.loc[:, self.original_name] = point
+				if(hasattr(model, 'predict_proba')):
+					predictions = model.predict_proba(X_copy)
+				else:
+					predictions = model.predict(X_copy)
+				val = np.mean(predictions, axis=0)
+				pdp.append(val)
+		elif dependence_method == "shap":
+			explainer = shap.Explainer(model)
+			shap_values = explainer.shap_values(X)
+			if type(shap_values) is list:
+				shap_values = shap_values[0]
+			axes = np.unique(X.loc[:, self.original_name])
+			for value in axes:
+				mean_shap = np.mean([shap_values[idx, self.original_index] for idx in range(len(axes)) if axes[idx] == value])	
+				pdp.append(mean_shap)
+			
+		else:
+			raise ValueError("Unknown dependence method, use 'pdp' or 'shap'.")
 		return np.array(pdp), axes
 
 	def fit(self, model, X, verbose):
 		if verbose:
 			print('Fitting variable:' + str(self.original_name))
-		pdp, axis = self._get_partial_dependence(model, X, grid_resolution=1000)
-		algo = rpt.Pelt(model=self.pelt_model).fit(pdp)
+		pdp, axis = self._get_partial_dependence(model, X, grid_resolution=1000, dependence_method=self.dependence_method)
+		algo = rpt.Pelt(model=self.pelt_model, min_size=2, jump=2).fit(pdp)
 		self.changepoints = algo.predict(pen=self.penalty)
 		self.changepoint_values = [axis[i] for i in self.changepoints[:-1]]
 		if not self.changepoint_values and self.no_changepoint_strategy == 'median':
@@ -145,7 +162,7 @@ class CategoricalVariable(Variable):
 			ret = np.zeros([X.shape[0], ret_len])
 			for row_num in range(dummies.shape[0]):
 				if not np.sum(dummies.iloc[row_num, :]) == 0:
-					idx = np.argwhere(dummies.iloc[row_num, :] == 1)[0]
+					idx = np.argwhere(dummies.iloc[row_num, :].to_numpy() == 1)[0]
 					if self.clusters[idx + 1] > 0:
 						ret[row_num, self.clusters[idx + 1] - 1] = 1
 			return pd.DataFrame(ret, columns=self.new_names[1:])
@@ -203,12 +220,13 @@ class SafeTransformer(TransformerMixin):
 	:param penalty: Penalty corresponding to adding a new changepoint. The higher the value of penalty the smaller nunber of levels of transformed variableswill be created (Default value = 3)
 	:param pelt_model: Cost function used in pelt algorith, possible values: 'l2', 'l1', 'rbf' (Default value = 'l2')
 	:param model_params: Dictionary of paramters passed to fit method of surrogate model. Only used if passed surrogate model is not alreedy fitted.
-	
+	:param dependence_method" Method of partial dependence fitting, possible values: 'pdp', 'shap' (Default value = 'pdp').
+
 	"""
 
 	categorical_dtypes = ['category', 'object']
 
-	def __init__(self, model, penalty=3, pelt_model='l2', model_params={}, no_changepoint_strategy='median'):
+	def __init__(self, model, penalty=3, pelt_model='l2', model_params={}, no_changepoint_strategy='median', dependence_method = 'pdp'):
 		"""
 		Initialize new transformer instance
 
@@ -217,6 +235,8 @@ class SafeTransformer(TransformerMixin):
 		:param pelt_model: Cost function used in pelt algorith, possible values: 'l2', 'l1', 'rbf' (Default value = 'l2')
 		:param model_params: Dictionary of parameters passed to fit method of surrogate model. Only used if passed surrogate model is not alreedy fitted.
 		:param no_changepoint_strategy: String specifying strategy to take, when no changepoint was detected. Should be one of: 'median', 'no_value'. If median is chosen, then there will be one changepoint set to 'median' value of a column. If 'no_value' is specified column will be removed. Default value = 'median'.
+		:param dependence_method" Method of partial dependence fitting, possible values: 'pdp', 'shap' (Default value = 'pdp').
+
 		"""
 		self.variables = []
 		self.model = model
@@ -224,6 +244,7 @@ class SafeTransformer(TransformerMixin):
 		self.pelt_model = pelt_model
 		self.model_params = model_params
 		self.is_fitted = False
+		self.dependence_method = dependence_method
 		if no_changepoint_strategy != 'median' and no_changepoint_strategy != 'no_value':
 			raise ValueError('Incorrect no changepoint strategy value. Should be one of: median or no_value.')
 		self.no_changepoint_strategy = no_changepoint_strategy
@@ -259,7 +280,7 @@ class SafeTransformer(TransformerMixin):
 				X = pd.concat([X.iloc[:,range(dummy_index)], dummies, X.iloc[:, range(dummy_index+1, len(X.columns))]], axis=1)
 				self.variables.append(CategoricalVariable(name, idx, list(dummies), levels=levels))
 			else:
-				self.variables.append(NumericVariable(name, idx, self.penalty, self.pelt_model, self.no_changepoint_strategy))
+				self.variables.append(NumericVariable(name, idx, self.penalty, self.pelt_model, self.no_changepoint_strategy, self.dependence_method))
 		if not self._is_model_fitted(X):
 			self.model.fit(X, y, **self.model_params)
 		for variable in self.variables:
