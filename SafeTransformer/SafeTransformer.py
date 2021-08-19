@@ -162,7 +162,7 @@ class CategoricalVariable(Variable):
 			ret = np.zeros([X.shape[0], ret_len])
 			for row_num in range(dummies.shape[0]):
 				if not np.sum(dummies.iloc[row_num, :]) == 0:
-					idx = np.argwhere(dummies.iloc[row_num, :] == 1)[0]
+					idx = np.argwhere(dummies.iloc[row_num, :].to_numpy() == 1)[0]
 					if self.clusters[idx + 1] > 0:
 						ret[row_num, self.clusters[idx + 1] - 1] = 1
 			return pd.DataFrame(ret, columns=self.new_names[1:])
